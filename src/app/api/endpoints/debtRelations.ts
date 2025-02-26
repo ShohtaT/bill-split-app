@@ -25,7 +25,11 @@ export async function getDebtRelations(paymentId: number): Promise<DebtRelations
     )
     .eq('id', paymentId)
     .limit(1);
-  if (error) throw error;
+
+  if (error) {
+    console.error('Error fetching debt relations:', error);
+    throw error;
+  }
 
   const payment = data?.[0];
   const debtRelations: DebtRelation[] = payment?.DebtRelations ?? [];
@@ -52,6 +56,13 @@ export async function updateDebtRelations(id: number, params: Partial<DebtRelati
   const currentUser = await getCurrentUser();
   if (currentUser === null) return null;
 
-  const { error } = await supabaseClient.from('DebtRelations').update(params).eq('id', id);
-  if (error) throw error;
+  const { error } = await supabaseClient
+    .from('DebtRelations')
+    .update({ ...params, updated_at: new Date() })
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error updating debt relation:', error);
+    throw error;
+  }
 }

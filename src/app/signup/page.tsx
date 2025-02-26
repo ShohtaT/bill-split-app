@@ -13,15 +13,19 @@ export default function Page() {
   const [password, setPassword] = useState('');
   const [nickname, setNickname] = useState('');
   const [message, setMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage('');
+    setIsLoading(true);
     try {
       await createUser(email, password, nickname);
-      setMessage('サインアップ成功！メールを確認してください。');
+      setMessage('メールを送信しました。メールに記載されているリンクからログインしてください！');
     } catch (error) {
       setMessage(`エラー: ${error}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -33,7 +37,7 @@ export default function Page() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen font-geist">
-      <h1 className="text-2xl font-bold mb-4">サインアップ</h1>
+      <h1 className="text-2xl font-bold mb-4">アカウント作成</h1>
 
       <form onSubmit={handleSubmit} className="w-full max-w-md flex flex-col gap-4">
         <InputField
@@ -61,7 +65,7 @@ export default function Page() {
           required={true}
         />
         <div className="mt-4 flex justify-center">
-          <SubmitButton label="サインアップ" />
+          <SubmitButton label="サインアップ" disabled={isLoading} />
         </div>
       </form>
 

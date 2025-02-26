@@ -77,8 +77,15 @@ export async function updatePayments(id: number, params: Partial<Payment>) {
   const currentUser = await getCurrentUser();
   if (currentUser === null) return null;
 
-  const { error } = await supabaseClient.from('Payments').update(params).eq('id', id);
-  if (error) throw error;
+  const { error } = await supabaseClient
+    .from('Payments')
+    .update({ ...params, updated_at: new Date() })
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error updating payment:', error);
+    throw error;
+  }
 }
 
 // PRIVATE FUNCTIONS =======================
@@ -111,7 +118,10 @@ const getUserNicknames = async (userIds: number[]): Promise<{ id: number; nickna
     .select('id, nickname')
     .in('id', userIds);
 
-  if (error) throw error;
+  if (error) {
+    console.error('Error fetching user nicknames:', error);
+    throw error;
+  }
   return data ?? [];
 };
 
@@ -123,7 +133,10 @@ const getUserNicknames = async (userIds: number[]): Promise<{ id: number; nickna
  */
 const createPaymentToSupabase = async (payment: PaymentCreate) => {
   const { error } = await supabaseClient.from('Payments').insert([payment]);
-  if (error) throw error;
+  if (error) {
+    console.error('Error inserting payment:', error);
+    throw error;
+  }
 };
 
 /**
@@ -137,7 +150,11 @@ const getPaymentLastOne = async () => {
     .select()
     .order('id', { ascending: false })
     .limit(1);
-  if (error) throw error;
+
+  if (error) {
+    console.error('Error fetching last payment:', error);
+    throw error;
+  }
   return data?.[0];
 };
 
@@ -151,7 +168,11 @@ const getMyPayments = async (creatorId: number) => {
     .from('Payments')
     .select()
     .eq('creator_id', creatorId);
-  if (error) throw error;
+
+  if (error) {
+    console.error('Error fetching my payments:', error);
+    throw error;
+  }
   return data;
 };
 
@@ -163,7 +184,11 @@ const getMyPayments = async (creatorId: number) => {
  */
 const createDebtRelationToSupabase = async (debtRelation: DebtRelationCreate) => {
   const { error } = await supabaseClient.from('DebtRelations').insert([debtRelation]);
-  if (error) throw error;
+
+  if (error) {
+    console.error('Error inserting debt relation:', error);
+    throw error;
+  }
 };
 
 /**
@@ -179,6 +204,9 @@ const getDebtRelationsToSupabase = async (
 ): Promise<DebtRelation[]> => {
   const { data, error } = await supabaseClient.from('DebtRelations').select().eq(column, value);
 
-  if (error) throw error;
+  if (error) {
+    console.error('Error fetching debt relations:', error);
+    throw error;
+  }
   return data ?? [];
 };

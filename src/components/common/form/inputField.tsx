@@ -1,10 +1,12 @@
 'use client';
 
+import { ChangeEvent } from 'react';
+
 interface InputFieldProps {
   type: 'email' | 'password' | 'text' | 'date' | 'number';
   placeholder?: string;
   value: string | number;
-  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onChange?: (e: ChangeEvent<HTMLInputElement>) => void;
   className?: string;
   label?: string;
   required?: boolean;

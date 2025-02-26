@@ -43,7 +43,7 @@ export default function Page() {
 
       <div className="mt-2 flex justify-end">
         <div
-          className="px-2 text-right text-lg border rounded cursor-pointer hover:opacity-70"
+          className="px-2 text-right bg-blue-500 text-white dark:text-black text-lg border rounded cursor-pointer hover:opacity-80"
           onClick={create}
         >
           ＋新規請求

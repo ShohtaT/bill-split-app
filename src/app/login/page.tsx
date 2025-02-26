@@ -12,16 +12,20 @@ export default function Page() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage('');
+    setIsLoading(true);
     try {
       await signIn(email, password);
       useUserStore.getState().setIsLogin(true);
       router.push('/');
     } catch (error) {
       setMessage(`エラー: ${error}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -51,7 +55,7 @@ export default function Page() {
           required={true}
         />
         <div className="mt-4 flex justify-center">
-          <SubmitButton label="ログイン" />
+          <SubmitButton label="ログイン" disabled={isLoading} />
         </div>
       </form>
 

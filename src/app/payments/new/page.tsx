@@ -20,6 +20,7 @@ export default function Page() {
   const [totalAmount, setTotalAmount] = useState(0);
   const [note, setNote] = useState('');
   const [billings, setBillings] = useState<Billing[]>([{ user: null, splitAmount: 0 }]);
+  const [isLoading, setIsLoading] = useState(false);
 
   // エラーメッセージ
   const [message, setMessage] = useState('');
@@ -55,11 +56,14 @@ export default function Page() {
     if (!confirmResult) return;
 
     setMessage('');
+    setIsLoading(true);
     try {
       await createPayment(title, paymentDate, totalAmount, billings, note);
       router.push('/payments');
     } catch (error) {
       setMessage(`保存に失敗しました\nError: ${error}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -115,7 +119,7 @@ export default function Page() {
         <BillingsForm billings={billings} optionUsers={optionUsers} onChange={setBillings} />
 
         <div className="mt-6 w-full flex justify-center">
-          <SubmitButton label="登録する" />
+          <SubmitButton label="登録する" disabled={isLoading} />
         </div>
       </form>
 

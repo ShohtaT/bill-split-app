@@ -25,7 +25,10 @@ export const getCurrentUser = async (): Promise<User | null> => {
   const uuid = await getCurrentUserUuid();
 
   const { data, error } = await supabaseClient.from('Users').select().eq('auth_id', uuid);
-  if (error) throw error;
+  if (error) {
+    console.error('Error fetching user:', error);
+    throw error;
+  }
 
   return data[0] ?? null;
 };
@@ -39,6 +42,7 @@ const getCurrentUserUuid = async (): Promise<string | null> => {
     if (user !== null) {
       uuid = user.id;
     } else {
+      console.error('User not found');
       throw new Error('User not found');
     }
   }

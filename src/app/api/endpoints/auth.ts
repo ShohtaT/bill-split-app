@@ -17,7 +17,10 @@ export async function createUser(email: string, password: string, nickname: stri
     .from('Users')
     .insert([{ auth_id: user.id, nickname: nickname }]);
 
-  if (error) throw error;
+  if (error) {
+    console.error('Error inserting user:', error);
+    throw error;
+  }
   return data;
 }
 
@@ -30,7 +33,10 @@ export async function createUser(email: string, password: string, nickname: stri
  */
 export async function signIn(email: string, password: string) {
   const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-  if (error) throw error;
+  if (error) {
+    console.error('Error signing in:', error);
+    throw error;
+  }
 }
 
 /**
@@ -40,7 +46,10 @@ export async function signIn(email: string, password: string) {
  */
 export async function signOut() {
   const { error } = await supabaseClient.auth.signOut();
-  if (error) throw error;
+  if (error) {
+    console.error('Error signing out:', error);
+    throw error;
+  }
 }
 
 /**
@@ -50,7 +59,10 @@ export async function signOut() {
  */
 export async function getSession() {
   const { data, error } = await supabaseClient.auth.getSession();
-  if (error) throw error;
+  if (error) {
+    console.error('Error getting session:', error);
+    throw error;
+  }
   return data;
 }
 
