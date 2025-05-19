@@ -3,8 +3,6 @@
 import { useEffect, useState } from 'react';
 import InputField from '@/components/common/form/inputField';
 import SubmitButton from '@/components/common/form/submitButton';
-import { AuthService } from '@/services/authService';
-import { useUserStore } from '@/stores/users';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 
@@ -18,9 +16,17 @@ export default function Page() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const authService = new AuthService();
-      await authService.signIn(email, password);
-      useUserStore.getState().setIsLogin(true);
+      const res = await fetch('/api/v1/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'usecase/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      if (!res.ok) {
+        const { error } = await res.json();
+        throw new Error(error || 'ログインに失敗しました');
+      }
+      // ログイン状態はlocalStorage等で管理する場合はここで保存
+      // localStorage.setItem('user', JSON.stringify(await res.json()));
       router.push('/');
       toast('ログインしました', { type: 'success' });
     } catch (error) {
@@ -31,9 +37,7 @@ export default function Page() {
   };
 
   useEffect(() => {
-    if (useUserStore.getState().getIsLogin()) {
-      router.push('/');
-    }
+    // ログイン状態の判定はlocalStorage等で行う場合はここで実装
   }, [router]);
 
   return (

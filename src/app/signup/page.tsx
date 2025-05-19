@@ -1,15 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import InputField from '@/components/common/form/inputField';
 import SubmitButton from '@/components/common/form/submitButton';
-import { AuthService } from '@/services/authService';
-import { useUserStore } from '@/stores/users';
-import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 
 export default function Page() {
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [nickname, setNickname] = useState('');
@@ -19,8 +15,15 @@ export default function Page() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const authService = new AuthService();
-      await authService.createUser(email, password, nickname);
+      const res = await fetch('/api/v1/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'usecase/json' },
+        body: JSON.stringify({ email, password, nickname }),
+      });
+      if (!res.ok) {
+        const { error } = await res.json();
+        throw new Error(error || 'アカウントの作成に失敗しました');
+      }
       toast('メールを送信しました。\nメールに記載されているリンクからログインしてください。', {
         type: 'success',
       });
@@ -30,12 +33,6 @@ export default function Page() {
       setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (useUserStore.getState().getIsLogin()) {
-      router.push('/');
-    }
-  }, [router]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen font-geist">

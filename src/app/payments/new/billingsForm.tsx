@@ -1,7 +1,7 @@
 'use client';
 
-import { User } from '@/types/user';
-import { Billing } from '@/types/payment';
+import { User } from '@/shared/types/user';
+import { Billing } from '@/shared/types/payment';
 import InputNumberField from '@/components/common/form/inputNumberField';
 
 interface BillingsFormProps {

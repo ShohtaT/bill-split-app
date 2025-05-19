@@ -1,33 +1,47 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Loading from '@/components/common/loading';
-import { useAuth } from '@/hooks/useAuth';
-import { usePaymentsStore } from '@/stores/payments';
 import Card from '@/app/payments/card';
 import { toast } from 'react-toastify';
 import { useRouter } from 'next/navigation';
+import { ExpandedPayment } from '@/shared/types/payment';
+import { getPaymentsUseCase } from '@/features/payment/usecase/getPayments';
 
 export default function Page() {
   const router = useRouter();
-  const { isAuthChecking, isLogin } = useAuth();
-  const { awaitingPayments, completedPayments, isLoading, isInitialized, fetchPayments } =
-    usePaymentsStore();
+  const [awaitingPayments, setAwaitingPayments] = useState<ExpandedPayment[] | null>(null);
+  const [completedPayments, setCompletedPayments] = useState<ExpandedPayment[] | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    if (!isAuthChecking && isLogin && !isInitialized) {
-      fetchPayments().catch((error) => {
+    const fetchPayments = async () => {
+      setIsLoading(true);
+      try {
+        // ログインユーザーIDはlocalStorageから取得
+        const userStr = typeof window === 'undefined' ? null : localStorage.getItem('user');
+        const user = userStr ? JSON.parse(userStr) : null;
+        if (!user?.id) throw new Error('ユーザー情報が取得できません');
+        const payments = await getPaymentsUseCase(user.id);
+        setAwaitingPayments(payments?.awaiting_payments || []);
+        setCompletedPayments(payments?.completed_payments || []);
+        setIsInitialized(true);
+      } catch (error) {
         console.error('Error fetching payments:', error);
         toast('支払い情報の取得に失敗しました', { type: 'error' });
-      });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    if (!isInitialized) {
+      fetchPayments();
     }
-  }, [isAuthChecking, isLogin, isInitialized, fetchPayments]);
+  }, [isInitialized]);
 
   const create = async () => {
     router.push('/payments/new');
   };
-
-  if (isAuthChecking || !isLogin) return <Loading />;
 
   if (isLoading) return <Loading />;
 
@@ -46,6 +60,7 @@ export default function Page() {
 
       {/* 未完了 */}
       <p className="text-2xl font-bold mt-4 text-orange-500">未完了</p>
+
       {awaitingPayments?.length === 0 ? (
         <p className="text-center">
           未完了の支払いはありません！

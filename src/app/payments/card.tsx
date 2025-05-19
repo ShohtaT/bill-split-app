@@ -1,6 +1,6 @@
 'use client';
 
-import { ExpandedPayment } from '@/types/payment';
+import { ExpandedPayment } from '@/shared/types/payment';
 import { useRouter } from 'next/navigation';
 
 interface CardProps {

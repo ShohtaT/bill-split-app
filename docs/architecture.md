@@ -1,58 +1,215 @@
-# アプリケーションアーキテクチャ
+# シンプルクリーンアーキテクチャ設計（Next.js × TypeScript × Supabase）
 
-このドキュメントでは、bill-split-appのアーキテクチャ設計思想と構成について説明します。
+このドキュメントでは、Next.js (App Router) × TypeScript × Supabase を用いたフルスタックアプリケーションの、APIとフロントエンドを分離したシンプルなクリーンアーキテクチャ構成について具体的に説明します。
 
-## アーキテクチャの概要
+---
 
-本アプリケーションは以下の設計思想に基づいて構築されています：
+## 1. アーキテクチャ全体像
 
-1. **クリーンアーキテクチャの採用**
+本アプリケーションは以下の設計思想に基づいて構築します：
 
-   - 層の分離による関心事の分離
-   - 依存関係の制御
-   - ビジネスロジックの独立性の確保
+- **クリーンアーキテクチャの徹底**
+  - 層ごとに責務を明確化し、依存性逆転を守る
+- **API（バックエンド）とフロントエンドの明確な分離**
+  - Next.js App Routerの`/api`ディレクトリでAPIを実装
+  - フロントエンドはAPI経由でデータ取得
+- **型安全・テスト容易性・拡張性の確保**
 
-2. **依存性の方向**
+### 依存関係の方向
 
 ```
-UI (Pages) → Services → Repositories → External (Supabase)
+UI (Front) → Application (UseCase) → Domain (Entity) → Infrastructure (Supabase, API)
 ```
 
-- 内側の層は外側の層に依存しない
-- 外部依存（Supabase）はRepositories層でカプセル化
+- 内側（Domain, Application）は外側（Infra, UI）に依存しない
+- 外部依存（Supabase）はInfrastructure層でカプセル化
 - 各層は独立してテスト可能
 
-## 層構造の説明
+---
 
-### 1. プレゼンテーション層 (`src/app/`)
+## 2. ディレクトリ構成（例）
 
-- Next.js App Routerを採用
-- ページコンポーネントとUIロジックを管理
-- Server ComponentsとClient Componentsの適切な使い分け
-- ユーザーインターフェースの責務に集中
+```
+src/
+├── app/                # Next.js App Router
+│   ├── api/            # APIルート（バックエンド）
+│   │   └── payment/    # 機能ごとのAPIエンドポイント
+│   └── ...             # フロントエンドページ
+│
+├── features/           # 機能単位でまとめたユースケース・ドメイン
+│   └── payment/
+│       ├── usecase/    # ユースケース（サービス）
+│       ├── domain/     # エンティティ・ドメインサービス
+│       └── infra/      # リポジトリ実装（Supabase等）
+│
+├── shared/             # 共通型・ユーティリティ
+│   ├── types/
+│   └── lib/
+└── styles/
+```
 
-### 2. ビジネスロジック層 (`src/services/`)
+---
 
-- アプリケーションのコアロジックを実装
-- ユースケースの実装
-- ドメインルールの適用
-- データの整形や加工
+## 3. 各層の責務と具体例
 
-実装例：
+### 3.1 UI層（Front, `src/app/`）
+
+- Next.js App Routerのページ・コンポーネント
+- API（`/api`）をfetchで呼び出し、データ取得・送信
+- UIロジックのみを担当し、ビジネスロジックは持たない
+
+**例：支払い作成ページ**
+
+```tsx
+// src/app/payments/new/page.tsx
+import { useState } from 'react';
+
+export default function NewPaymentPage() {
+  const [title, setTitle] = useState('');
+  const [amount, setAmount] = useState(0);
+
+  const handleSubmit = async () => {
+    await fetch('/api/payment', {
+      method: 'POST',
+      body: JSON.stringify({ title, amount }),
+    });
+  };
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        handleSubmit();
+      }}
+    >
+      <input value={title} onChange={(e) => setTitle(e.target.value)} />
+      <input type="number" value={amount} onChange={(e) => setAmount(Number(e.target.value))} />
+      <button type="submit">作成</button>
+    </form>
+  );
+}
+```
+
+### 3.2 API層（Back, `src/app/api/`）
+
+- Next.jsのAPI Routeでエンドポイントを実装
+- Application層（UseCase）を呼び出し、リクエスト/レスポンスを処理
+
+**例：支払い作成API**
 
 ```typescript
-export class PaymentService {
-  // リポジトリへの依存を注入
-  constructor(private paymentRepository: PaymentRepository) {}
+// src/app/api/payment/route.ts
+import { createPaymentUseCase } from '@/features/payment/usecase/createPayment';
 
-  // ビジネスロジックを実装
-  async createPayment(title: string, amount: number, billings: Billing[]) {
-    // バリデーションやビジネスルールの適用
-    // データの整形
-    // リポジトリを使用したデータ操作
+export async function POST(req: Request) {
+  const { title, amount } = await req.json();
+  await createPaymentUseCase({ title, amount });
+  return new Response(null, { status: 201 });
+}
+```
+
+### 3.3 Application層（UseCase, `src/features/*/usecase/`）
+
+- ユースケース（アプリケーションサービス）を実装
+- ドメイン層とインフラ層の橋渡し
+- 入出力DTOの定義
+
+**例：支払い作成ユースケース**
+
+```typescript
+// src/features/payment/usecase/createPayment.ts
+import { Payment } from '../domain/Payment';
+import { paymentRepository } from '../infra/PaymentRepositorySupabase';
+
+export async function createPaymentUseCase(input: { title: string; amount: number }) {
+  const payment = Payment.create(input.title, input.amount);
+  await paymentRepository.save(payment);
+}
+```
+
+### 3.4 Domain層（Entity, `src/features/*/domain/`）
+
+- ドメインモデル・ビジネスロジックを実装
+- エンティティ・値オブジェクト・ドメインサービス
+
+**例：支払いエンティティ**
+
+```typescript
+// src/features/payment/domain/Payment.ts
+export class Payment {
+  constructor(
+    public title: string,
+    public amount: number
+  ) {}
+
+  static create(title: string, amount: number) {
+    if (!title) throw new Error('タイトル必須');
+    if (amount <= 0) throw new Error('金額は正の数');
+    return new Payment(title, amount);
   }
 }
 ```
+
+### 3.5 Infrastructure層（`src/features/*/infra/`）
+
+- SupabaseやAPIとの通信を担当
+- リポジトリ実装で外部依存をカプセル化
+
+**例：Supabaseリポジトリ実装**
+
+```typescript
+// src/features/payment/infra/PaymentRepositorySupabase.ts
+import { supabaseClient } from '@/shared/lib/supabaseClient';
+import { Payment } from '../domain/Payment';
+
+export const paymentRepository = {
+  async save(payment: Payment) {
+    await supabaseClient.from('payments').insert({
+      title: payment.title,
+      amount: payment.amount,
+    });
+  },
+};
+```
+
+---
+
+## 4. 状態管理・型・共通部品
+
+- ZustandやReact Contextでグローバル状態管理（必要最小限）
+- 型定義は`shared/types/`に集約
+- 共通ライブラリ・ユーティリティは`shared/lib/`に配置
+
+---
+
+## 5. この構成のメリット
+
+1. **保守性・拡張性**
+   - 層ごとに責務が明確で、変更の影響範囲が限定的
+2. **テスタビリティ**
+   - 各層が独立してテスト可能。モック・スタブも容易
+3. **スケーラビリティ**
+   - 機能追加やチーム開発がしやすい
+4. **依存性の制御**
+   - 外部サービスの変更が内部に影響しにくい
+
+---
+
+## 6. 今後の展望
+
+1. **テストカバレッジの向上**
+2. **パフォーマンスの最適化**
+3. **セキュリティの強化**
+
+// ビジネスロジックを実装
+async createPayment(title: string, amount: number, billings: Billing[]) {
+// バリデーションやビジネスルールの適用
+// データの整形
+// リポジトリを使用したデータ操作
+}
+}
+
+````
 
 ### 3. データアクセス層 (`src/repositories/`)
 
@@ -74,7 +231,7 @@ export class PaymentRepository {
     return data;
   }
 }
-```
+````
 
 ## 状態管理 (`src/stores/`)
 
